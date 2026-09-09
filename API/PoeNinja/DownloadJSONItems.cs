@@ -113,6 +113,7 @@ public class DataDownloader
                 }
 
                 newData.DivineToExaltedRate = newData.DivineToExaltedRateRaw;
+                newData.ChaosToExaltedRate = newData.ChaosToExaltedRateRaw;
 
                 new FileInfo(metadataPath).Directory?.Create();
                 await File.WriteAllTextAsync(metadataPath, JsonConvert.SerializeObject(new LeagueMetadata { LastLoadTime = DateTime.UtcNow }));

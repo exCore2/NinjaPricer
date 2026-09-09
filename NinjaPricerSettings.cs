@@ -322,6 +322,9 @@ public class PriceOverlaySettings
 public class VisualPriceSettings
 {
     public RangeNode<int> SignificantDigits { get; set; } = new(2, 0, 2);
+
+    [Menu(null, "Somewhat experimental")]
+    public ToggleNode ShowPricesInChaos { get; set; } = new ToggleNode(false);
     public ColorNode FontColor { get; set; } = Color.FromArgb(216, 216, 216);
     public ColorNode BackgroundColor { get; set; } = Color.FromArgb(0, 0, 0);
     public RangeNode<int> SemiValuableColorThreshold { get; set; } = new(20, 0, 100000);

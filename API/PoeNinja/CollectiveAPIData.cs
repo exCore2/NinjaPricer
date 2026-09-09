@@ -32,6 +32,7 @@ public class CollectiveApiData
     public StashOverview UniqueTablets { get; set; }
 
     public double DivineToExaltedRate { get; set; }
+    public double ChaosToExaltedRate { get; set; }
 
     public double DivineToExaltedRateRaw
     {
@@ -45,6 +46,24 @@ public class CollectiveApiData
             if (Currency.Core.Primary == "exalted")
             {
                 return Currency.Lines.First(x => x.Id == "divine").PrimaryValue;
+            }
+
+            throw new Exception($"Unknown primary {Currency.Core.Primary}");
+        }
+    }
+
+    public double ChaosToExaltedRateRaw
+    {
+        get
+        {
+            if (Currency.Core.Primary == "divine")
+            {
+                return Currency.Lines.First(x => x.Id == "chaos").PrimaryValue * Currency.Core.Rates.Exalted.Value;
+            }
+
+            if (Currency.Core.Primary == "exalted")
+            {
+                return Currency.Lines.First(x => x.Id == "chaos").PrimaryValue;
             }
 
             throw new Exception($"Unknown primary {Currency.Core.Primary}");

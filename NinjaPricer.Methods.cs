@@ -51,6 +51,7 @@ public partial class NinjaPricer
     };
 
     private double DivinePrice => _downloader.CollectedData?.DivineToExaltedRate ?? 0;
+    private double ChaosPrice => _downloader.CollectedData?.ChaosToExaltedRate ?? 0;
 
     private List<NormalInventoryItem> GetInventoryItems()
     {

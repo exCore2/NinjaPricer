@@ -284,7 +284,7 @@ public partial class NinjaPricer
                         var bottomRight = optionRect.BottomRight;
                         var typePrice = item.PriceData.MinChaosValue;
                         {
-                            var text = typePrice.FormatNumber(Settings.VisualPriceSettings.SignificantDigits.Value);
+                            var text = ConvertToVisual(typePrice).FormatNumber(Settings.VisualPriceSettings.SignificantDigits.Value);
                             var textSize = Graphics.MeasureText(text);
                             var textRect = new RectangleF(topRight.X - textSize.X, topRight.Y, textSize.X, textSize.Y);
                             if ((HoveredItemTooltipRect?.Intersects(textRect) ?? false) ||
@@ -300,7 +300,8 @@ public partial class NinjaPricer
                         if (currencyOption.Owned is > 0 and var owned)
                         {
                             var totalOwned = typePrice * owned;
-                            var text2 = $"Owned: {totalOwned.FormatNumber(Settings.VisualPriceSettings.SignificantDigits.Value)}";
+                            var totalOwnedVisual = ConvertToVisual(totalOwned);
+                            var text2 = $"Owned: {totalOwnedVisual.FormatNumber(Settings.VisualPriceSettings.SignificantDigits.Value)}";
                             var textSize2 = Graphics.MeasureText(text2);
                             var textRect2 = new RectangleF(bottomRight.X - textSize2.X, bottomRight.Y - textSize2.Y, textSize2.X, textSize2.Y);
                             if ((HoveredItemTooltipRect?.Intersects(textRect2) ?? false) ||
@@ -325,7 +326,7 @@ public partial class NinjaPricer
 
     private void DrawItemPriceInline(CustomItem customItem)
     {
-        var text = customItem.PriceData.MinChaosValue.FormatNumber(Settings.VisualPriceSettings.SignificantDigits.Value);
+        var text = ConvertToVisual(customItem.PriceData.MinChaosValue).FormatNumber(Settings.VisualPriceSettings.SignificantDigits.Value);
         var textSize = Graphics.MeasureText(text);
         var topRight = customItem.Element.GetClientRectCache.TopRight;
         if (HoveredItemTooltipRect?.Intersects(new RectangleF(topRight.X - textSize.X, topRight.Y, textSize.X, textSize.Y)) ?? false)
@@ -373,10 +374,12 @@ public partial class NinjaPricer
             AddText(changeText);
         }
 
-        var priceInChaos = HoveredItem.PriceData.MinChaosValue;
-        var priceInDivines = priceInChaos / DivinePrice;
+        var priceInExalt = HoveredItem.PriceData.MinChaosValue;
+        var priceInDivines = priceInExalt / DivinePrice;
+        var priceInChaos = priceInExalt / ChaosPrice;
         var priceInDivinesText = priceInDivines.FormatNumber(2);
-        var minPriceText = priceInChaos.FormatNumber(2, Settings.VisualPriceSettings.MaximalValueForFractionalDisplay);
+        var priceInChaosText = priceInChaos.FormatNumber(2);
+        var minPriceText = priceInExalt.FormatNumber(2, Settings.VisualPriceSettings.MaximalValueForFractionalDisplay);
         AddSection();
         switch (HoveredItem.ItemType)
         {
@@ -397,11 +400,15 @@ public partial class NinjaPricer
                 if (priceInDivines >= 0.1)
                 {
                     var priceInDivinessPerOne = priceInDivines / HoveredItem.CurrencyInfo.StackSize;
+                    var priceInChaosPerOne = priceInChaos / HoveredItem.CurrencyInfo.StackSize;
                     AddText(priceInDivinessPerOne >= 0.1
                         ? $"\nDivine: {priceInDivinesText}d ({priceInDivinessPerOne.FormatNumber(2)}d per one)"
                         : $"\nDivine: {priceInDivinesText}d");
+                    AddText(priceInChaosPerOne >= 0.1
+                        ? $"\nChaos: {priceInChaosText}c ({priceInChaosPerOne.FormatNumber(2)}c per one)"
+                        : $"\nChaos: {priceInChaosText}c");
                 }
-                AddText($"\nExalt: {minPriceText}ex ({(priceInChaos / HoveredItem.CurrencyInfo.StackSize).FormatNumber(2, Settings.VisualPriceSettings.MaximalValueForFractionalDisplay)}ex per one)");
+                AddText($"\nExalt: {minPriceText}ex ({(priceInExalt / HoveredItem.CurrencyInfo.StackSize).FormatNumber(2, Settings.VisualPriceSettings.MaximalValueForFractionalDisplay)}ex per one)");
                 break;
             case ItemTypes.UniqueAccessory:
             case ItemTypes.UniqueArmour:
@@ -425,6 +432,15 @@ public partial class NinjaPricer
                     AddText(priceInDivinesText != maxDivinePriceText 
                         ? $"\nDivine: {priceInDivinesText}d - {maxDivinePriceText}d" 
                         : $"\nDivine: {priceInDivinesText}d");
+                    
+                }
+
+                if (priceInChaos >= 0.1)
+                {
+                    var maxChaosPriceText = (HoveredItem.PriceData.MaxChaosValue / ChaosPrice).FormatNumber(2);
+                    AddText(priceInChaosText != maxChaosPriceText
+                        ? $"\nChaos: {priceInChaosText}c - {maxChaosPriceText}c"
+                        : $"\nChaos: {priceInChaosText}c");
                 }
 
                 var maxPriceText = HoveredItem.PriceData.MaxChaosValue.FormatNumber(2, Settings.VisualPriceSettings.MaximalValueForFractionalDisplay);
@@ -442,6 +458,7 @@ public partial class NinjaPricer
                 }
 
                 AddText($"\nExalt: {minPriceText}ex");
+                AddText($"\nChaos: {priceInChaosText}ex");
                 break;
         }
 
@@ -463,7 +480,7 @@ public partial class NinjaPricer
             if (TryGetArtifactPrice(HoveredItem, out var amount, out var artifactName))
             {
                 AddSection();
-                AddText($"\nArtifact price: ({(priceInChaos / amount * 100).FormatNumber(2)}ex per 100 {artifactName})");
+                AddText($"\nArtifact price: ({(priceInExalt / amount * 100).FormatNumber(2)}ex per 100 {artifactName})");
             }
         }
 
@@ -471,11 +488,11 @@ public partial class NinjaPricer
         if (!string.IsNullOrWhiteSpace(tooltipText))
         {
             ImGui.BeginTooltip();
-            var hoverTextColor = priceInChaos >= Settings.VisualPriceSettings.ExtraValuableColorThreshold.Value
+            var hoverTextColor = priceInExalt >= Settings.VisualPriceSettings.ExtraValuableColorThreshold.Value
                 ? Settings.VisualPriceSettings.ExtraValuableColor
-                : priceInChaos >= Settings.VisualPriceSettings.ValuableColorThreshold.Value
+                : priceInExalt >= Settings.VisualPriceSettings.ValuableColorThreshold.Value
                     ? Settings.VisualPriceSettings.ValuableColor
-                    : priceInChaos >= Settings.VisualPriceSettings.SemiValuableColorThreshold.Value
+                    : priceInExalt >= Settings.VisualPriceSettings.SemiValuableColorThreshold.Value
                         ? Settings.VisualPriceSettings.SemiValuableColor
                         : null;
             if (hoverTextColor != null)
@@ -500,12 +517,12 @@ public partial class NinjaPricer
             if (!Settings.StashValueSettings.Show || !StashPanel.IsVisible) return;
             {
                 var pos = new Vector2(Settings.StashValueSettings.PositionX.Value, Settings.StashValueSettings.PositionY.Value);
-                var chaosValue = StashTabValue;
+                var exaltValue = StashTabValue;
                 var topValueItems = GetTopValueItems(ItemsToDrawList)
                     .Take(Settings.StashValueSettings.TopValuedItemCount.Value)
                     .ToList();
 
-                DrawWorthWidget(chaosValue, pos, Settings.VisualPriceSettings.SignificantDigits.Value, Settings.VisualPriceSettings.FontColor, Settings.StashValueSettings.EnableBackground,
+                DrawWorthWidget(exaltValue, pos, Settings.VisualPriceSettings.SignificantDigits.Value, Settings.VisualPriceSettings.FontColor, Settings.StashValueSettings.EnableBackground,
                     topValueItems);
             }
         }
@@ -539,9 +556,13 @@ public partial class NinjaPricer
     private void DrawWorthWidget(double chaosValue, Vector2 pos, int significantDigits, Color textColor, bool drawBackground, List<CustomItem> topValueItems) => DrawWorthWidget("", false, chaosValue, pos, significantDigits, textColor, drawBackground, topValueItems);
     private void DrawWorthWidget(string initialString, bool indent, double chaosValue, Vector2 pos, int significantDigits, Color textColor, bool drawBackground, List<CustomItem> topValueItems)
     {
-        var text = $"{initialString}{(indent ? "\t" : "")}Exalt: {chaosValue.FormatNumber(significantDigits)}" + (DivinePrice != null
-            ? $"\n{(indent ? "\t" : "")}Divine: {(chaosValue / DivinePrice).FormatNumber(significantDigits)}"
-            : "");
+        var text = $"{initialString}{(indent ? "\t" : "")}Exalt: {chaosValue.FormatNumber(significantDigits)}" +
+                   (DivinePrice != null
+                       ? $"\n{(indent ? "\t" : "")}Divine: {(chaosValue / DivinePrice).FormatNumber(significantDigits)}"
+                       : "") +
+                   (ChaosPrice != null
+                       ? $"\n{(indent ? "\t" : "")}Chaos: {(chaosValue / ChaosPrice).FormatNumber(significantDigits)}"
+                       : "");
         if (topValueItems.Count > 0)
         {
             var maxChaosValueLength = topValueItems.Max(x => x.PriceData.MinChaosValue.FormatNumber(2, forceDecimals: true).Length);
@@ -581,24 +602,29 @@ public partial class NinjaPricer
         }
     }
 
-    private (Color TextColor, Color BackgroundColor) GetOverlayColors(double chaosValue)
+    private (Color TextColor, Color BackgroundColor) GetOverlayColors(double exaltValue)
     {
-        if (chaosValue >= Settings.VisualPriceSettings.ExtraValuableColorThreshold.Value)
+        if (exaltValue >= Settings.VisualPriceSettings.ExtraValuableColorThreshold.Value)
         {
             return (Settings.VisualPriceSettings.ExtraValuableColor, Settings.VisualPriceSettings.ExtraValuableBackgroundColor);
         }
 
-        if (chaosValue >= Settings.VisualPriceSettings.ValuableColorThreshold.Value)
+        if (exaltValue >= Settings.VisualPriceSettings.ValuableColorThreshold.Value)
         {
             return (Settings.VisualPriceSettings.ValuableColor, Settings.VisualPriceSettings.BackgroundColor);
         }
 
-        if (chaosValue >= Settings.VisualPriceSettings.SemiValuableColorThreshold.Value)
+        if (exaltValue >= Settings.VisualPriceSettings.SemiValuableColorThreshold.Value)
         {
             return (Settings.VisualPriceSettings.SemiValuableColor, Settings.VisualPriceSettings.BackgroundColor);
         }
 
         return (Settings.VisualPriceSettings.FontColor, Settings.VisualPriceSettings.BackgroundColor);
+    }
+
+    private double ConvertToVisual(double exaltValue)
+    {
+        return Settings.VisualPriceSettings.ShowPricesInChaos ? exaltValue / ChaosPrice : exaltValue;
     }
 
     private void PriceBoxOverItem(CustomItem item, RectangleF? containerBox, Color? textColor = null, Color? backgroundColor = null, StashPriceOverlayLayout layout = null)
@@ -636,7 +662,8 @@ public partial class NinjaPricer
             if (itemValue < Settings.PriceOverlaySettings.UnitValueHintThreshold) textColor = Color.Red;
         }
 
-        Graphics.DrawText(itemValue.FormatNumber(Settings.VisualPriceSettings.SignificantDigits.Value), textPosition, textColor ?? overlayColors.TextColor, FontAlign.Center);
+        var itemValueVisual = ConvertToVisual(itemValue);
+        Graphics.DrawText(itemValueVisual.FormatNumber(Settings.VisualPriceSettings.SignificantDigits.Value), textPosition, textColor ?? overlayColors.TextColor, FontAlign.Center);
     }
 
     private void ProcessTradeWindow()
@@ -748,9 +775,9 @@ public partial class NinjaPricer
                                 : item.PriceData.MinChaosValue > 0) &&
                             (!Settings.GroundItemSettings.OnlyPriceUniquesOnGround || item.Rarity == ItemRarity.Unique))
                         {
-                            var s = item.PriceData.MinChaosValue.FormatNumber(2);
+                            var s = ConvertToVisual(item.PriceData.MinChaosValue).FormatNumber(2);
                             if (item.PriceData.MaxChaosValue > item.PriceData.MinChaosValue)
-                                s += $"-{item.PriceData.MaxChaosValue.FormatNumber(2)}";
+                                s += $"-{ConvertToVisual(item.PriceData.MaxChaosValue).FormatNumber(2)}";
 
                             using (Graphics.SetTextScale(Settings.GroundItemSettings.GroundPriceTextScale))
                             {
@@ -815,10 +842,10 @@ public partial class NinjaPricer
                     {
                         if (item.PriceData.MinChaosValue > 0)
                         {
-                            var s = item.PriceData.MinChaosValue.FormatNumber(2);
+                            var s = ConvertToVisual(item.PriceData.MinChaosValue).FormatNumber(2);
                             if (item.PriceData.MaxChaosValue > item.PriceData.MinChaosValue)
                             {
-                                s += $"-{item.PriceData.MaxChaosValue.FormatNumber(2)}";
+                                s += $"-{ConvertToVisual(item.PriceData.MaxChaosValue).FormatNumber(2)}";
                             }
 
                             using (Graphics.SetTextScale(Settings.GroundItemSettings.GroundPriceTextScale))
