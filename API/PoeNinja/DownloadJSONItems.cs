@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using ExileCore2;
 using Newtonsoft.Json;
 using NinjaPricer.API.PoeNinja.Models;
 
@@ -30,35 +31,35 @@ public class DataDownloader
     public NinjaPricerSettings Settings { get; set; }
     public string DataDirectory { get; set; }
 
-    // Mapping from category name -> API type parameter
-    static readonly Dictionary<string, string> ExchangeCategoryMap = new()
+    static readonly List<(string Name, string ApiName, Action<CollectiveApiData, ExchangeOverview> Setter)> ExchangeCategories = new()
     {
-        { "Currency", "Currency" },
-        { "Breach", "Breach" },
-        { "Delirium", "Delirium" },
-        { "Essences", "Essences" },
-        { "Runes", "Runes" },
-        { "Ritual", "Ritual" },
-        { "Fragments", "Fragments" },
-        { "UncutGems", "UncutGems" },
-        { "Abyss", "Abyss" },
-        { "Expedition", "Expedition" },
-        { "Verisium", "Verisium" },
-        { "LineageSupportGems", "LineageSupportGems" },
-        { "SoulCores", "SoulCores" },
-        { "Idols", "Idols" },
+        ("Currency", "Currency", (d, v) => d.Currency = v),
+        ("Breach", "Breach", (d, v) => d.Breach = v),
+        ("Delirium", "Delirium", (d, v) => d.Delirium = v),
+        ("Essences", "Essences", (d, v) => d.Essences = v),
+        ("Runes", "Runes", (d, v) => d.Runes = v),
+        ("Ritual", "Ritual", (d, v) => d.Ritual = v),
+        ("Fragments", "Fragments", (d, v) => d.Fragments = v),
+        ("UncutGems", "UncutGems", (d, v) => d.UncutGems = v),
+        ("Abyss", "Abyss", (d, v) => d.Abyss = v),
+        ("Expedition", "Expedition", (d, v) => d.Expedition = v),
+        ("Verisium", "Verisium", (d, v) => d.Verisium = v),
+        ("LineageSupportGems", "LineageSupportGems", (d, v) => d.LineageSupportGems = v),
+        ("SoulCores", "SoulCores", (d, v) => d.SoulCores = v),
+        ("Idols", "Idols", (d, v) => d.Idols = v),
     };
 
-    static readonly Dictionary<string, string> StashCategoryMap = new()
+    static readonly List<(string Name, string ApiName, Action<CollectiveApiData, StashOverview> Setter)> StashCategories = new()
     {
-        { "Weapons", "UniqueWeapons"},
-        { "Armour", "UniqueArmours"},
-        { "Accessories", "UniqueAccessories"},
-        { "Flasks", "UniqueFlasks"},
-        { "Jewels", "UniqueJewels"},
-        { "Maps", "UniqueMaps"},
-        { "Charms", "UniqueCharms" },
-        { "SanctumRelics", "UniqueSanctumRelics" },
+        ("Weapons", "UniqueWeapons", (d, v) => d.Weapons = v),
+        ("Armour", "UniqueArmours", (d, v) => d.Armour = v),
+        ("Accessories", "UniqueAccessories", (d, v) => d.Accessories = v),
+        ("Flasks", "UniqueFlasks", (d, v) => d.Flasks = v),
+        ("Jewels", "UniqueJewels", (d, v) => d.Jewels = v),
+        ("Charms", "UniqueCharms", (d, v) => d.Charms = v),
+        ("SanctumRelics", "UniqueSanctumRelics", (d, v) => d.SanctumRelics = v),
+        ("Tablets", "PrecursorTablets", (d, v) => d.Tablets = v),
+        ("UniqueTablets", "UniqueTablets", (d, v) => d.UniqueTablets = v),
     };
 
     public void StartDataReload(string league, bool forceRefresh)
@@ -86,28 +87,28 @@ public class DataDownloader
                 }
 
                 // Load exchange (currency) categories
-                foreach (var (key, type) in ExchangeCategoryMap)
+                foreach (var (name, apiName, setter) in ExchangeCategories)
                 {
-                    var fileName = $"{key}.json";
-                    var url = GetExchangeLink(league, type);
+                    var fileName = $"{name}.json";
+                    var url = GetExchangeLink(league, apiName);
 
                     var data = await LoadFromWebOrBackup<ExchangeOverview>(fileName, url, tryWebFirst);
                     if (data != null)
                     {
-                        SetExchangeProperty(newData, key, data);
+                        setter(newData, data);
                     }
                 }
 
                 // Load stash (unique) categories
-                foreach (var (key, type) in StashCategoryMap)
+                foreach (var (name, apiName, setter) in StashCategories)
                 {
-                    var fileName = $"{key}.json";
-                    var url = GetStashLink(league, type);
+                    var fileName = $"{name}.json";
+                    var url = GetStashLink(league, apiName);
 
                     var data = await LoadFromWebOrBackup<StashOverview>(fileName, url, tryWebFirst);
                     if (data != null)
                     {
-                        SetStashProperty(newData, key, data);
+                        setter(newData, data);
                     }
                 }
 
@@ -120,47 +121,15 @@ public class DataDownloader
                 CollectedData = newData;
                 log("Updated CollectedData.");
             }
+            catch (Exception ex)
+            {
+                DebugWindow.LogError($"Ninja pricer failed to reload data: {ex}");
+            }
             finally
             {
                 Interlocked.Exchange(ref _updating, 0);
             }
         });
-    }
-
-    void SetExchangeProperty(CollectiveApiData data, string name, ExchangeOverview value)
-    {
-        switch (name)
-        {
-            case "Currency": data.Currency = value; break;
-            case "Breach": data.Breach = value; break;
-            case "Delirium": data.Delirium = value; break;
-            case "Essences": data.Essences = value; break;
-            case "Runes": data.Runes = value; break;
-            case "Ritual": data.Ritual = value; break;
-            case "Fragments": data.Fragments = value; break;
-            case "UncutGems": data.UncutGems = value; break;
-            case "Abyss": data.Abyss = value; break;
-            case "Expedition": data.Expedition = value; break;
-            case "Verisium": data.Verisium = value; break;
-            case "LineageSupportGems": data.LineageSupportGems = value; break;
-            case "SoulCores": data.SoulCores = value; break;
-            case "Idols": data.Idols = value; break;
-        }
-    }
-
-    void SetStashProperty(CollectiveApiData data, string name, StashOverview value)
-    {
-        switch (name)
-        {
-            case "Weapons": data.Weapons = value; break;
-            case "Armour": data.Armour = value; break;
-            case "Accessories": data.Accessories = value; break;
-            case "Flasks": data.Flasks = value; break;
-            case "Jewels": data.Jewels = value; break;
-            case "Maps": data.Maps = value; break;
-            case "Charms": data.Charms = value; break;
-            case "SanctumRelics": data.SanctumRelics = value; break;
-        }
     }
 
     private async Task<bool> IsLocalCacheStale(string metadataPath)

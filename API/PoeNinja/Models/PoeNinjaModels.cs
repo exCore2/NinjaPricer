@@ -129,6 +129,9 @@ public class StashLine
     [JsonProperty("baseType")]
     public string BaseType { get; set; }
 
+    [JsonProperty("variant")]
+    public string Variant { get; set; }
+
     [JsonProperty("icon")]
     public string Icon { get; set; }
 

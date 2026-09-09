@@ -199,6 +199,10 @@ public class CustomItem
         {
             ItemType = ItemTypes.Verisium;
         }
+        else if (ClassName == "TowerAugmentation")
+        {
+            ItemType = Rarity == ItemRarity.Unique ? ItemTypes.UniqueTablet : ItemTypes.Tablet;
+        }
         else if (ClassName == "StackableCurrency" &&
                  (Path.StartsWith("Metadata/Items/Currency/Distilled", StringComparison.Ordinal) ||
                   Path.StartsWith("Metadata/Items/Currency/EndgameDistilled")))
@@ -314,9 +318,6 @@ public class CustomItem
         {
             switch (Rarity) // Unique information
             {
-                case ItemRarity.Unique when MapInfo.IsMap || ClassName == "TowerAugmentation":
-                    ItemType = ItemTypes.UniqueMap;
-                    break;
                 case ItemRarity.Unique when ClassName is "UtilityFlask":
                     ItemType = ItemTypes.UniqueCharm;
                     break;

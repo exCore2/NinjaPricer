@@ -409,6 +409,7 @@ public partial class NinjaPricer
             case ItemTypes.UniqueJewel:
             case ItemTypes.UniqueWeapon:
             case ItemTypes.UniqueCharm:
+            case ItemTypes.UniqueTablet:
             case ItemTypes.Relic:
                 if (HoveredItem.UniqueNameCandidates.Any())
                 {
@@ -432,9 +433,9 @@ public partial class NinjaPricer
                     : $"\nExalt: {minPriceText}ex");
 
                 break;
-            case ItemTypes.UniqueMap:
             case ItemTypes.SkillGem:
             case ItemTypes.UncutGem:
+            case ItemTypes.Tablet:
                 if (priceInDivines >= 0.1)
                 {
                     AddText($"\nDivine: {priceInDivinesText}d");

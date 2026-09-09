@@ -141,8 +141,8 @@ public partial class NinjaPricer
             ItemTypes.UniqueJewel => root.Jewels,
             ItemTypes.UniqueWeapon => root.Weapons,
             ItemTypes.UniqueCharm => root.Charms,
-            ItemTypes.UniqueMap => root.Maps,
             ItemTypes.Relic => root.SanctumRelics,
+            ItemTypes.UniqueTablet => root.UniqueTablets,
             _ => null,
         };
     }
@@ -210,6 +210,19 @@ public partial class NinjaPricer
                             item.PriceData.MinChaosValue = item.CurrencyInfo.StackSize * fragmentSearch.Value.Line.PrimaryValue * CollectedData.Fragments.PrimaryToExaltedRate / pricedStack;
                             item.PriceData.ChangeInLast7Days = fragmentSearch.Value.Line.Sparkline?.TotalChange ?? 0;
                             item.PriceData.DetailsId = fragmentSearch.Value.Item.DetailsId;
+                        }
+
+                        break;
+                    }
+                    case ItemTypes.Tablet:
+                    {
+                        var match = CollectedData.Tablets.Lines
+                            .FirstOrDefault(x => x.BaseType == item.BaseName && x.Variant == item.Rarity.ToString());
+                        if (match != null)
+                        {
+                            item.PriceData.MinChaosValue = match.PrimaryValue * CollectedData.Tablets.PrimaryToExaltedRate;
+                            item.PriceData.ChangeInLast7Days = match.Sparkline?.TotalChange ?? 0;
+                            item.PriceData.DetailsId = match.DetailsId;
                         }
 
                         break;

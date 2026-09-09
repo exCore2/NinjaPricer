@@ -13,7 +13,6 @@ public enum ItemTypes
     UniqueJewel,
     UniqueWeapon,
     UniqueCharm,
-    UniqueMap,
     SkillGem,
     UncutGem,
     Omen,
@@ -27,4 +26,6 @@ public enum ItemTypes
     Abyss,
     Verisium,
     Relic,
+    Tablet,
+    UniqueTablet,
 }
