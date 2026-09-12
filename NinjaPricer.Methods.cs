@@ -293,9 +293,12 @@ public partial class NinjaPricer
         // TODO: Get inventory items and not just stash tab items, this will be done at a later date
         try
         {
-            if (!Settings.StashValueSettings.Show)
+            // FormattedItemList feeds the stash overlay AND the ritual/purchase windows, so this gate
+            // has to consider every source we price. Keying it on StashValueSettings.Show alone meant
+            // turning that off silently killed ritual and purchase prices too.
+            if (!HasPriceableItemSource())
             {
-                if (Settings.DebugSettings.EnableDebugLogging) { LogMessage($"{GetCurrentMethod()}.ShouldUpdateValues() Stash is not visible", 5, Color.DarkGray); }
+                if (Settings.DebugSettings.EnableDebugLogging) { LogMessage($"{GetCurrentMethod()}.ShouldUpdateValues() Nothing to price", 5, Color.DarkGray); }
                 return false;
             }
         }
@@ -307,6 +310,28 @@ public partial class NinjaPricer
 
         if (Settings.DebugSettings.EnableDebugLogging) LogMessage($"{GetCurrentMethod()}.ShouldUpdateValues() == True", 5, Color.LimeGreen);
         return true;
+    }
+
+    /// <summary>
+    /// True when something we are asked to price can be on screen. Each source keeps its own toggle:
+    /// the stash keeps StashValueSettings.Show, the ritual and purchase windows keep the
+    /// LeagueSpecificSettings toggles that Render and DrawGraphics already honour.
+    /// </summary>
+    private bool HasPriceableItemSource()
+    {
+        if (Settings.StashValueSettings.Show)
+            return true;
+
+        var ui = GameController.Game.IngameState.IngameUi;
+
+        if (Settings.LeagueSpecificSettings.ShowRitualWindowPrices && ui.RitualWindow is { IsVisible: true })
+            return true;
+
+        if (Settings.LeagueSpecificSettings.ShowPurchaseWindowPrices &&
+            (ui.PurchaseWindow is { IsVisible: true } || ui.PurchaseWindowHideout is { IsVisible: true }))
+            return true;
+
+        return false;
     }
 
     private bool ShouldUpdateValuesInventory()
